@@ -1,0 +1,5 @@
+{
+  "name": "Statement of Account Generator",
+  "description": "A professional tool to generate customer statements of account by merging uploaded sales data with manual payment entries.",
+  "requestFramePermissions": []
+}
