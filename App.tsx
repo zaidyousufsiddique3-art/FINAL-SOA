@@ -5,12 +5,13 @@ import { Transaction, StatementConfig, StatementHistoryItem } from './types';
 import { generateStatementPDF } from './services/pdfGenerator';
 import { FileText, Users, Download, Trash2, Activity, History, LayoutTemplate, LogOut, Loader2, Save, CheckCircle, CreditCard, Sun, Moon } from 'lucide-react';
 import { formatDate } from './utils/formatters';
+import { imageUrlToBase64 } from './utils/imageHelpers';
 import { Login } from './components/Login';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { COMPANY_LOGO_BASE64 } from './constants/logo';
+import LogoImage from './constants/Alogo.png';
 import { ThemeProvider, useTheme } from './components/ThemeContext';
 
 const AppContent: React.FC = () => {
@@ -25,7 +26,7 @@ const AppContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  const [logoData, setLogoData] = useState<string | null>(COMPANY_LOGO_BASE64);
+  const [logoData, setLogoData] = useState<string | null>(LogoImage);
 
   const [config, setConfig] = useState<Omit<StatementConfig, 'logoUrl'>>({
     operatingUnit: 'FMCG',
@@ -72,14 +73,26 @@ const AppContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Load local logo override if exists
+  // Load local logo override if exists, or convert default PNG to base64
   useEffect(() => {
-    const savedLogo = localStorage.getItem('companyLogo');
-    if (savedLogo) {
-      setLogoData(savedLogo);
-    } else {
-      setLogoData(COMPANY_LOGO_BASE64);
-    }
+    const loadLogo = async () => {
+      const savedLogo = localStorage.getItem('companyLogo');
+      if (savedLogo) {
+        setLogoData(savedLogo);
+      } else {
+        try {
+          // Convert PNG to base64 for PDF compatibility
+          const base64Logo = await imageUrlToBase64(LogoImage);
+          setLogoData(base64Logo);
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          // Fallback to direct PNG URL if conversion fails
+          setLogoData(LogoImage);
+        }
+      }
+    };
+
+    loadLogo();
   }, []);
 
   // Extract unique customers
@@ -114,13 +127,21 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (confirm("Are you sure you want to clear all data? This will reset the logo to default.")) {
       setFileTransactions([]);
       setManualTransactions([]);
       setSelectedCustomer('');
       setConfigSaved(false);
-      setLogoData(COMPANY_LOGO_BASE64);
+
+      try {
+        const base64Logo = await imageUrlToBase64(LogoImage);
+        setLogoData(base64Logo);
+      } catch (error) {
+        console.error('Error resetting logo:', error);
+        setLogoData(LogoImage);
+      }
+
       localStorage.removeItem('companyLogo');
     }
   };
@@ -264,7 +285,16 @@ const AppContent: React.FC = () => {
                         <img src={logoData} alt="Logo Preview" className="w-full h-auto object-contain" />
                       </div>
                       <button
-                        onClick={() => { setLogoData(COMPANY_LOGO_BASE64); localStorage.removeItem('companyLogo'); }}
+                        onClick={async () => {
+                          try {
+                            const base64Logo = await imageUrlToBase64(LogoImage);
+                            setLogoData(base64Logo);
+                          } catch (error) {
+                            console.error('Error resetting logo:', error);
+                            setLogoData(LogoImage);
+                          }
+                          localStorage.removeItem('companyLogo');
+                        }}
                         className="text-[10px] text-red-500 dark:text-red-400 hover:underline"
                       >
                         Reset to Default Logo

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Loader2, Lock, Mail, ArrowRight } from 'lucide-react';
-import { COMPANY_LOGO_BASE64 } from '../constants/logo';
+import LogoImage from '../constants/Alogo.png';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ export const Login: React.FC = () => {
 
         <div className="flex flex-col items-center mb-8">
           <div className="bg-white p-4 rounded-xl mb-6 shadow-lg border border-gray-100 dark:border-gray-700">
-            <img src={COMPANY_LOGO_BASE64} alt="Company Logo" className="h-16 object-contain" />
+            <img src={LogoImage} alt="Company Logo" className="h-16 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Statement Generator</h1>
           <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">Sign in to access your account</p>
