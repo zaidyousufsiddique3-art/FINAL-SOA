@@ -17,11 +17,11 @@ export const generateStatementPDF = (
   // 0. Find reference Region/Site from manual transactions for this customer to override file data
   const customerManualTrxs = manualTransactions.filter(t => t.customerName === selectedCustomer);
   const refTrx = customerManualTrxs.length > 0 ? customerManualTrxs[0] : null;
-  
+
   // 1. Get Invoices from File
-  const invoiceTrxs = fileTransactions.filter(t => 
-    t.customerName === selectedCustomer && 
-    t.trxDate >= config.startDate && 
+  const invoiceTrxs = fileTransactions.filter(t =>
+    t.customerName === selectedCustomer &&
+    t.trxDate >= config.startDate &&
     t.trxDate <= config.endDate
   ).map(t => ({
     ...t,
@@ -34,7 +34,7 @@ export const generateStatementPDF = (
   }));
 
   // 2. Get Payments from Manual Entry
-  const paymentTrxs = manualTransactions.filter(t => 
+  const paymentTrxs = manualTransactions.filter(t =>
     t.customerName === selectedCustomer &&
     t.trxDate >= config.startDate &&
     t.trxDate <= config.endDate
@@ -43,11 +43,11 @@ export const generateStatementPDF = (
     trxType: 'PAYMENT',
     // Manual payments are stored as negative in Form, keep them negative or ensure logic matches
     // Requirement: PAYMENT -> Amount is - (reduces balance)
-    calculatedAmount: -Math.abs(t.originalAmount) 
+    calculatedAmount: -Math.abs(t.originalAmount)
   }));
 
   // 3. Combine and Sort
-  const allTrxs = [...invoiceTrxs, ...paymentTrxs].sort((a, b) => 
+  const allTrxs = [...invoiceTrxs, ...paymentTrxs].sort((a, b) =>
     new Date(a.trxDate).getTime() - new Date(b.trxDate).getTime()
   );
 
@@ -58,11 +58,11 @@ export const generateStatementPDF = (
     try {
       const imgProps = doc.getImageProperties(config.logoUrl);
       // Determine width/height based on aspect ratio
-      // Max width 60, Max height 35
-      const maxWidth = 60;
-      const maxHeight = 35;
+      // Increased logo size for better visibility
+      const maxWidth = 100;
+      const maxHeight = 55;
       const ratio = imgProps.height / imgProps.width;
-      
+
       let finalWidth = maxWidth;
       let finalHeight = finalWidth * ratio;
 
@@ -72,7 +72,7 @@ export const generateStatementPDF = (
       }
 
       const xPos = (pageWidth - finalWidth) / 2;
-      
+
       doc.addImage(config.logoUrl, xPos, 10, finalWidth, finalHeight);
     } catch (e) {
       console.error('Error adding logo', e);
@@ -82,20 +82,20 @@ export const generateStatementPDF = (
       doc.text("AFDHAL AL AGHDHIA FOR TRADING", pageWidth / 2, 25, { align: 'center' });
     }
   } else {
-     // Default text if no logo provided
-     doc.setFontSize(16);
-     doc.setTextColor(0, 95, 163); // Blue-ish
-     doc.text("AFDHAL AL AGHDHIA FOR TRADING", pageWidth / 2, 25, { align: 'center' });
+    // Default text if no logo provided
+    doc.setFontSize(16);
+    doc.setTextColor(0, 95, 163); // Blue-ish
+    doc.text("AFDHAL AL AGHDHIA FOR TRADING", pageWidth / 2, 25, { align: 'center' });
   }
 
   // Header Info Block
   // Customer Name, Statement Period, Operating Unit
   const headerY = 50; // Moved down slightly to accommodate potentially taller logo
-  
+
   doc.setFontSize(10);
   doc.setTextColor(100);
   doc.setFont('helvetica', 'bold');
-  
+
   // Left Side: Customer
   doc.text("CUSTOMER NAME:", 14, headerY);
   doc.setFont('helvetica', 'normal');
@@ -119,7 +119,7 @@ export const generateStatementPDF = (
   doc.text(config.operatingUnit, 14, headerY + 22);
 
   // --- Table Generation ---
-  
+
   let runningBalance = config.openingBalance;
 
   const tableBody = allTrxs.map(t => {
@@ -154,50 +154,50 @@ export const generateStatementPDF = (
     5: { cellWidth: 30, halign: 'right' },
     6: { cellWidth: 30, halign: 'right' }
   };
-  
+
   // 1. Main Table (Opening Balance + Transactions)
   autoTable(doc, {
     startY: obY,
     margin: { left: 14, right: 14 },
     // Define Header with Opening Balance as the first row
     head: [
-        [
-            { 
-                content: 'OPENING BALANCE', 
-                colSpan: 6, 
-                styles: { 
-                    halign: 'left', 
-                    fillColor: [0, 95, 163], 
-                    textColor: [255, 255, 255], 
-                    fontStyle: 'bold',
-                    cellPadding: { top: 2, bottom: 2, left: 4 },
-                } 
-            },
-            { 
-                content: `SAR ${formatCurrency(config.openingBalance)}`, 
-                styles: { 
-                    halign: 'right', 
-                    fillColor: [0, 95, 163], 
-                    textColor: [255, 255, 255], 
-                    fontStyle: 'bold',
-                    cellPadding: { top: 2, bottom: 2, right: 4 },
-                } 
-            }
-        ],
-        [
-            'Transaction Date', 
-            'Number', 
-            'Region', 
-            'Site Location', 
-            'Type', 
-            'Amount', 
-            'Balance'
-        ]
+      [
+        {
+          content: 'OPENING BALANCE',
+          colSpan: 6,
+          styles: {
+            halign: 'left',
+            fillColor: [0, 95, 163],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            cellPadding: { top: 2, bottom: 2, left: 4 },
+          }
+        },
+        {
+          content: `SAR ${formatCurrency(config.openingBalance)}`,
+          styles: {
+            halign: 'right',
+            fillColor: [0, 95, 163],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            cellPadding: { top: 2, bottom: 2, right: 4 },
+          }
+        }
+      ],
+      [
+        'Transaction Date',
+        'Number',
+        'Region',
+        'Site Location',
+        'Type',
+        'Amount',
+        'Balance'
+      ]
     ],
     body: tableBody,
     theme: 'grid',
     headStyles: {
-      fillColor: [10, 30, 50], 
+      fillColor: [10, 30, 50],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'center',
@@ -230,45 +230,45 @@ export const generateStatementPDF = (
     body: [
       [
         // Empty Spacer cells (cols 0,1,2,3 -> span 4)
-        { 
-          content: '', 
-          colSpan: 4, 
-          styles: { lineWidth: 0, fillColor: [255, 255, 255] } 
+        {
+          content: '',
+          colSpan: 4,
+          styles: { lineWidth: 0, fillColor: [255, 255, 255] }
         },
         // Label (cols 4,5 -> span 2)
-        { 
-          content: 'Total Balance Due', 
-          colSpan: 2, 
-          styles: { 
+        {
+          content: 'Total Balance Due',
+          colSpan: 2,
+          styles: {
             fillColor: [5, 237, 5], // #05ed05
-            textColor: [0, 0, 0], 
-            fontStyle: 'bold', 
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
             lineWidth: 0.1,
             lineColor: [200, 200, 200]
-          } 
+          }
         },
         // Value (col 6)
-        { 
-          content: `SAR ${formatCurrency(finalBalance)}`, 
-          styles: { 
+        {
+          content: `SAR ${formatCurrency(finalBalance)}`,
+          styles: {
             fillColor: [5, 237, 5], // #05ed05
-            textColor: [0, 0, 0], 
-            fontStyle: 'bold', 
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
             halign: 'right',
             valign: 'middle',
             lineWidth: 0.1,
             lineColor: [200, 200, 200]
-          } 
+          }
         }
       ]
     ],
     theme: 'plain', // Use plain so we control borders manually
     columnStyles: sharedColumnStyles, // Reuse exact widths to align
     styles: {
-        cellPadding: 2,
-        fontSize: 8
+      cellPadding: 2,
+      fontSize: 8
     }
   });
 
@@ -278,7 +278,7 @@ export const generateStatementPDF = (
   doc.setTextColor(100);
   doc.setFont('helvetica', 'bold');
   const footerText = "Thank you for your continued cooperation. We kindly request that the outstanding balance be settled at your earliest convenience.";
-  
+
   // Wrap text
   const splitText = doc.splitTextToSize(footerText, pageWidth - 30);
   doc.text(splitText, 14, finalY);
@@ -289,6 +289,6 @@ export const generateStatementPDF = (
   // Return Blob URL for history
   const blob = doc.output('blob');
   const blobUrl = URL.createObjectURL(blob);
-  
+
   return { blob, blobUrl, fileName };
 };
